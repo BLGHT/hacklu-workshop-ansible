@@ -1,23 +1,11 @@
 ---
 # Required, set in group_vars/all.yml
 workshop_domain: ""
-workshop_letsencrypt_email: ""
-
-workshop_letsencrypt_staging: false
-
-# Abort before requesting a certificate if workshop_domain does not resolve to
-# this instance's public IP. Protects against the Let's Encrypt rate limit for
-# failed validations.
-workshop_letsencrypt_dns_check: false
 
 workshop_user: ubuntu
 workshop_dir: /opt/magic-workshop
 
 workshop_git_repo: https://github.com/BLGHT/hacklu-workshop.git
 workshop_git_version: main
-# GitHub access token. Leave empty while the repository is public.
+# GitHub access token. The repository is private, so this is required.
 workshop_git_token: ""
-
-# Optional further .env values. Keys not listed here, such as the MAGIC
-# credentials, are left untouched in .env.
-workshop_env: {}

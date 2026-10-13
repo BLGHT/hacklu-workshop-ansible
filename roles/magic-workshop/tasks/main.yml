@@ -1,17 +1,22 @@
 ---
+# Scope: prepare the host, fetch the repository and lay down the nginx virtual
+# host. Starting and configuring the stack belongs to the administrator, see
+# README.md. Nothing here runs the Makefile or docker compose.
+
 - name: Check required variables
   ansible.builtin.assert:
     that:
       - workshop_domain | length > 0
-      - workshop_letsencrypt_email | length > 0
       - lookup('pipe', 'whoami') == workshop_user
     fail_msg: >-
-      Set workshop_domain and workshop_letsencrypt_email in group_vars/all.yml
-      and run ansible-playbook as {{ workshop_user }} (without sudo).
+      Set workshop_domain in group_vars/all.yml and run ansible-playbook as
+      {{ workshop_user }} (without sudo).
     quiet: true
 
 # --- Prerequisites ------------------------------------------------------------
 
+# make, openssl and certbot are unused here. They are what the administrator
+# needs for `make bootstrap`, `make certs` and the certificate request.
 - name: Install base packages and certbot
   ansible.builtin.apt:
     name: [ca-certificates, curl, git, make, openssl, certbot]
@@ -30,13 +35,14 @@
   when: _workshop_compose.rc != 0
 
 # Also covers a Docker that was installed before but is stopped or disabled.
-# Needs systemd, so this fails inside a plain container (no dockerd there).
 - name: Start Docker and enable it at boot
   ansible.builtin.service:
     name: docker
     state: started
     enabled: true
 
+# Takes effect on the administrator's next login, which is why they have to log
+# in again before running the Makefile.
 - name: Add the workshop user to the docker group
   ansible.builtin.user:
     name: "{{ workshop_user }}"
@@ -95,7 +101,6 @@
         GIT_CONFIG_COUNT: "1"
         GIT_CONFIG_KEY_0: credential.helper
         GIT_CONFIG_VALUE_0: store --file={{ _workshop_git_credentials.path }}
-      register: _workshop_git
 
   always:
     - name: Remove the temporary git credential file
@@ -105,46 +110,19 @@
       changed_when: false
       when: _workshop_git_credentials.path is defined
 
-# --- Configuration ------------------------------------------------------------
-
-# Creates .env from env.example with generated passwords, the runtime
-# directories and the Timesketch config. Runs only once.
-- name: Run the repository bootstrap (make bootstrap)
-  ansible.builtin.command: make bootstrap
-  args:
-    chdir: "{{ workshop_dir }}"
-    creates: "{{ workshop_dir }}/.env"
-  become: true
-  become_user: "{{ workshop_user }}"
-
-# Only these keys are managed. Everything else in .env, such as the MAGIC
-# credentials, stays as you set it by hand.
-- name: Set .env values
-  ansible.builtin.lineinfile:
-    path: "{{ workshop_dir }}/.env"
-    regexp: "^{{ item.key }}="
-    line: "{{ item.key }}={{ item.value }}"
-    owner: "{{ workshop_user }}"
-    group: "{{ workshop_user }}"
-    mode: "0600"
-  loop: "{{ _workshop_env | dict2items | rejectattr('value', 'equalto', '') | list }}"
-  no_log: true
-  vars:
-    _workshop_env: >-
-      {{ {
-           'WORKSHOP_ROOT': workshop_dir,
-           'PUBLIC_HOSTNAME': workshop_domain,
-           'OPENSEARCH_MEM_USE_GB': [(ansible_facts['memtotal_mb'] / 4096) | round | int, 1] | max | string,
-         } | combine(workshop_env) }}
-
 # --- nginx virtual host -------------------------------------------------------
 
+# Served by nginx for the ACME challenge, and mounted into the container below.
+# The administrator points `certbot --webroot-path` at it.
 - name: Create the ACME webroot
   ansible.builtin.file:
     path: /var/www/letsencrypt
     state: directory
     mode: "0755"
 
+# No validate: here. nginx is not installed on the host, and `nginx -t` would
+# fail on the proxy_pass upstreams, which only resolve inside the compose
+# network.
 - name: Render the nginx virtual host for {{ workshop_domain }}
   ansible.builtin.template:
     src: nginx.conf.j2
@@ -152,7 +130,6 @@
     owner: "{{ workshop_user }}"
     group: "{{ workshop_user }}"
     mode: "0644"
-  register: _workshop_vhost
 
 # docker compose merges this file automatically. Volumes are merged by
 # container path, so it replaces the repository's catch-all nginx.conf.
@@ -169,91 +146,3 @@
     owner: "{{ workshop_user }}"
     group: "{{ workshop_user }}"
     mode: "0644"
-
-# nginx does not start without a certificate. This self-signed one is replaced
-# by the Let's Encrypt certificate below.
-- name: Create a placeholder certificate (make certs)
-  ansible.builtin.command: make certs
-  args:
-    chdir: "{{ workshop_dir }}"
-    creates: "{{ workshop_dir }}/certs/workshop.crt"
-  become: true
-  become_user: "{{ workshop_user }}"
-
-# --- Stack --------------------------------------------------------------------
-
-- name: Check for the participant notebook image
-  ansible.builtin.command: >-
-    docker image inspect {{ workshop_env['SINGLEUSER_IMAGE'] | default('magic-workshop-singleuser:latest') }}
-  register: _workshop_image
-  changed_when: false
-  failed_when: false
-
-- name: Build the images (make build)
-  ansible.builtin.command: make build
-  args:
-    chdir: "{{ workshop_dir }}"
-  when: _workshop_git.changed or _workshop_image.rc != 0
-  changed_when: true
-
-# Retried because OpenSearch can take a while to become healthy on first start.
-- name: Start the stack (make up)
-  ansible.builtin.command: make up
-  args:
-    chdir: "{{ workshop_dir }}"
-  register: _workshop_up
-  until: _workshop_up.rc == 0
-  retries: 3
-  delay: 30
-  changed_when: _workshop_up.stderr is search('Created|Recreated|Started')
-
-# nginx.conf is a single-file mount, which a running container does not see
-# being replaced. A reload is not enough.
-- name: Restart nginx after a virtual host change
-  ansible.builtin.command: docker compose restart nginx
-  args:
-    chdir: "{{ workshop_dir }}"
-  when: _workshop_vhost.changed  # noqa: no-handler
-  changed_when: true
-
-# --- Let's Encrypt ------------------------------------------------------------
-
-- name: Check the DNS record of {{ workshop_domain }}
-  ansible.builtin.shell: |
-    set -euo pipefail
-    public_ip="$(curl -fsS https://checkip.amazonaws.com)"
-    resolved="$(getent ahostsv4 {{ workshop_domain }} | awk '{print $1}' | sort -u || true)"
-    if ! grep -qxF "${public_ip}" <<< "${resolved}"; then
-      echo "{{ workshop_domain }} resolves to [${resolved//$'\n'/ }], but this instance is ${public_ip}." \
-           "Fix the A record or set workshop_letsencrypt_dns_check: false." >&2
-      exit 1
-    fi
-  args:
-    executable: /bin/bash
-    creates: /etc/letsencrypt/live/{{ workshop_domain }}/fullchain.pem
-  changed_when: false
-  when: workshop_letsencrypt_dns_check | bool
-
-# Requested once. certbot.timer renews it and runs the stored deploy hook,
-# which copies the certificate to certs/ (mounted by nginx) and reloads nginx.
-- name: Request the Let's Encrypt certificate
-  ansible.builtin.command:
-    argv:
-      - certbot
-      - certonly
-      - --non-interactive
-      - --agree-tos
-      - --no-eff-email
-      - --email={{ workshop_letsencrypt_email }}
-      - --server=https://acme{{ '-staging' if workshop_letsencrypt_staging | bool else '' }}-v02.api.letsencrypt.org/directory
-      - --webroot
-      - --webroot-path=/var/www/letsencrypt
-      - --cert-name={{ workshop_domain }}
-      - --domains={{ workshop_domain }}
-      - >-
-        --deploy-hook=install -o {{ workshop_user }} -g {{ workshop_user }} -m 0644
-        $RENEWED_LINEAGE/fullchain.pem {{ workshop_dir }}/certs/workshop.crt &&
-        install -o {{ workshop_user }} -g {{ workshop_user }} -m 0600
-        $RENEWED_LINEAGE/privkey.pem {{ workshop_dir }}/certs/workshop.key &&
-        docker exec workshop-nginx nginx -s reload
-    creates: /etc/letsencrypt/live/{{ workshop_domain }}/fullchain.pem
