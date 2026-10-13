@@ -1,6 +1,6 @@
 ---
 - name: Workshop Installation
-  hosts: all
+  hosts: localhost
 
   roles:
     - magic-workshop
