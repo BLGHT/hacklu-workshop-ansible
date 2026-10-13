@@ -1,0 +1,21 @@
+---
+# Holds the GitHub token once filled in. Do not commit it back (see README.md).
+
+# Public DNS name of the workshop. Its A record must point at the instance's
+# static IP before the first run.
+workshop_domain: workshop.example.org
+
+# Receives Let's Encrypt expiry warnings.
+workshop_letsencrypt_email: admin@example.org
+
+# Set to true for test runs (untrusted certificate, no rate limits).
+workshop_letsencrypt_staging: false
+
+# GitHub access token for BLGHT/hacklu-workshop (fine-grained, read-only
+# "Contents"). Leave empty while the repository is public.
+workshop_git_token: ""
+
+# Further .env values. Secrets are read from environment variables instead,
+# see README.md.
+# workshop_env:
+#   SINGLEUSER_MEM_LIMIT: 4G
