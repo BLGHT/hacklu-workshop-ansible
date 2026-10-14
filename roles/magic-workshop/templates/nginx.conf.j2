@@ -1,6 +1,5 @@
 # {{ ansible_managed }}
-# Replaces the repository's config/nginx/nginx.conf for {{ workshop_domain }}
-# (mounted via docker-compose.override.yml).
+# Managed by Ansible for {{ workshop_domain }}.
 
 events {
     worker_connections 1024;
@@ -36,14 +35,15 @@ http {
         }
     }
 
+{% if workshop_tls_enabled | bool %}
     server {
         listen      443 ssl default_server;
         listen [::]:443 ssl default_server;
         http2 on;
         server_name {{ workshop_domain }};
 
-        ssl_certificate     /etc/nginx/certs/workshop.crt;
-        ssl_certificate_key /etc/nginx/certs/workshop.key;
+        ssl_certificate     /etc/letsencrypt/live/{{ workshop_domain }}/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/{{ workshop_domain }}/privkey.pem;
         ssl_protocols       TLSv1.2 TLSv1.3;
         ssl_session_cache   shared:SSL:10m;
 
@@ -78,4 +78,5 @@ http {
             proxy_set_header X-Forwarded-Proto $scheme;
         }
     }
+{% endif %}
 }

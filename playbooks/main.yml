@@ -1,6 +1,8 @@
 ---
 - name: Workshop Installation
-  hosts: localhost
+  hosts: workshops
+  vars_files:
+    - ../group_vars/all.yml
 
   roles:
     - magic-workshop
