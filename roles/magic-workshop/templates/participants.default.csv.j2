@@ -1,0 +1,5 @@
+username,full_name,email,password
+{% for number in range(1, 21) %}
+{% set password = lookup('ansible.builtin.password', '/dev/null', length=16, chars=['ascii_letters', 'digits']) %}
+participant{{ '%02d' | format(number) }},Participant {{ '%02d' | format(number) }},,{{ password }}
+{% endfor %}

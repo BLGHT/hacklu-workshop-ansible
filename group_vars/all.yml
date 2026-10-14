@@ -1,11 +1,10 @@
 ---
-# Holds the GitHub token once filled in. Do not commit it back (see README.md).
+# Shared settings for all workshop VMs. Keep real credentials out of commits.
+workshop_user: ubuntu
+workshop_dir: /opt/magic-workshop
 
-# Public DNS name of the workshop. Here it only drives the nginx virtual host.
-# The administrator puts the same name into .env as PUBLIC_HOSTNAME and passes
-# it to certbot. Its A record must point at the instance's static IP.
-workshop_domain: workshop.example.org
+workshop_letsencrypt_email: "test@example.com"
 
-# GitHub access token for BLGHT/hacklu-workshop (fine-grained, read-only
-# "Contents"). The repository is private, so this is required.
-workshop_git_token: ""
+workshop_magic_client_id: ""
+workshop_magic_client_secret: ""
+workshop_magic_tenant_id: ""
