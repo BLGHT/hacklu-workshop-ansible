@@ -114,13 +114,9 @@
     "        \"--reports-dir\", MAGIC_LOGS,\n",
     "        *extra,\n",
     "    ]\n",
-    "    proc = subprocess.run(cmd, capture_output=True, text=True)\n",
-    "    print(proc.stdout[-4000:])\n",
-    "    if proc.returncode:\n",
-    "        print(\"--- stderr ---\")\n",
-    "        print(proc.stderr[-4000:])\n",
-    "    return proc.returncode\n",
     "\n",
+    "    proc = subprocess.run(cmd)\n",
+    "    return proc.returncode\n",
     "\n",
     "run_magic(\"--manifest\")"
    ]
