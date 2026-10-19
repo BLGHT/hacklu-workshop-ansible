@@ -44,6 +44,9 @@ mkdir -p \
   config/timesketch/llm_starred_events_report \
   config/timesketch/nl2q
 
+mkdir -p "${SHARED_DATA_DIR:-shared-data}"
+chmod 0755 "${SHARED_DATA_DIR:-shared-data}"
+
 touch config/nginx/htpasswd
 
 # OpenSearch runs as uid 1000; TAKE_FILE_OWNERSHIP also handles this at runtime.

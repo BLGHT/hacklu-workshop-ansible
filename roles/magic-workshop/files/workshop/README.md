@@ -113,6 +113,43 @@ Disable again with `make no-htpasswd && make restart-nginx`.
 
 ---
 
+## Shared notebook files
+
+Every notebook mounts the same host directory at `/home/jovyan/work/shared`,
+visible as `shared` in the JupyterLab file browser. Participants can read files
+there, but Docker mounts it read-only. Their personal work directory remains
+writable. The workshop operator manages the shared files on the host.
+
+`make bootstrap` creates `shared-data/` with mode `0755`. Set `SHARED_DATA_DIR`
+in `.env` to use another directory relative to `WORKSHOP_ROOT`. Existing `.env`
+files without this setting automatically use `shared-data`.
+
+For example, run from the deployed workshop directory as the workshop operator:
+
+```bash
+install -m 0644 /path/to/dataset.csv shared-data/dataset.csv
+```
+
+Use your configured directory instead of `shared-data` if you changed it. Files
+must be readable by the notebook user, typically mode `0644`, and subdirectories
+must allow traversal, typically mode `0755`. Only publish material intended for
+all participants. Host-side file updates become visible without restarting
+notebooks.
+
+For an existing deployment, deploy the updated workshop files, run
+`make bootstrap`, and recreate the Hub to load its new environment and config:
+
+```bash
+docker compose up -d --no-deps --force-recreate jupyterhub
+```
+
+Notify participants before stopping and starting their notebook servers through
+JupyterHub so they receive the new mount. A kernel restart alone is insufficient;
+existing notebook containers keep their old mounts across a Hub restart. The
+same stop/start is required after changing `SHARED_DATA_DIR`.
+
+---
+
 ## Provisioning participants
 
 ### 1. Write the participant list

@@ -15,6 +15,7 @@ CONFIG_DIR = Path("/srv/jupyterhub/config")
 DATA_DIR = Path("/srv/jupyterhub/data")
 
 PARTICIPANT_DATA_HOST_PATH = os.environ["PARTICIPANT_DATA_HOST_PATH"]
+SHARED_DATA_HOST_PATH = os.environ["SHARED_DATA_HOST_PATH"]
 
 
 def _split_env(name):
@@ -71,6 +72,10 @@ c.DockerSpawner.name_template = "workshop-nb-{username}"
 c.DockerSpawner.notebook_dir = "/home/jovyan/work"
 c.DockerSpawner.volumes = {
     f"{PARTICIPANT_DATA_HOST_PATH}/{{username}}": "/home/jovyan/work",
+    SHARED_DATA_HOST_PATH: {
+        "bind": "/home/jovyan/work/shared",
+        "mode": "ro",
+    },
 }
 
 c.Spawner.default_url = "/lab"
