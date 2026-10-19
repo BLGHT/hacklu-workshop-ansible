@@ -1,6 +1,7 @@
 ---
 - name: Workshop Installation
   hosts: workshops
+  gather_facts: false
   vars_files:
     - ../group_vars/all.yml
 

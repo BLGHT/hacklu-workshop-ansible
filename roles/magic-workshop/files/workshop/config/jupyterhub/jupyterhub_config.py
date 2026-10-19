@@ -70,6 +70,19 @@ c.DockerSpawner.remove = True
 c.DockerSpawner.pull_policy = "never"
 c.DockerSpawner.name_template = "workshop-nb-{username}"
 c.DockerSpawner.notebook_dir = "/home/jovyan/work"
+
+def optional_env(name: str, default: str) -> str:
+    """
+    Liest eine optionale Umgebungsvariable.
+    """
+    return os.environ.get(name, default).strip()
+
+
+shared_volume = optional_env(
+    "/opt/magic-workshop/shared",
+    "jupyterhub-shared",
+)
+
 c.DockerSpawner.volumes = {
     f"{PARTICIPANT_DATA_HOST_PATH}/{{username}}": "/home/jovyan/work",
     SHARED_DATA_HOST_PATH: {
