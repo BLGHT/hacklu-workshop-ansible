@@ -16,12 +16,14 @@
 #    quiet: true
 
 - name: Resolve the participant CSV path on the Ansible controller
+  tags: [generate_files]
   ansible.builtin.set_fact:
     workshop_participants_csv_local_path: >-
       {{ workshop_participants_csv_path if workshop_participants_csv_path is
       match('^/') else (playbook_dir | dirname) ~ '/' ~ workshop_participants_csv_path }}
 
 - name: Create the participant CSV directory on the controller
+  tags: [generate_files]
   become: false
   delegate_to: localhost
   ansible.builtin.file:
@@ -29,13 +31,15 @@
     state: directory
 
 - name: Check whether the participant CSV exists on the controller
+  tags: [generate_files]
   become: false
   delegate_to: localhost
   ansible.builtin.stat:
     path: "{{ workshop_participants_csv_local_path }}"
   register: _workshop_participants_csv
 
-- name: Generate a 50-user participant CSV when it is missing
+- name: Generate a 20-user participant CSV when it is missing
+  tags: [generate_files]
   become: false
   delegate_to: localhost
   ansible.builtin.template:
@@ -46,6 +50,7 @@
   when: not _workshop_participants_csv.stat.exists
 
 - name: Validate the participant CSV
+  tags: [generate_files]
   ansible.builtin.assert:
     that:
       - lookup('ansible.builtin.file', workshop_participants_csv_local_path) | trim | split('\n') | length > 1
