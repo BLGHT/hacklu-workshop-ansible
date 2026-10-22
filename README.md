@@ -1,7 +1,9 @@
 # MAGIC Workshop Ansible Deployment
 
-> [!IMPORTANT] Regarding the Workshop data
-> The simulated data used to create this workshop is specifically not uploaded to this repository. Everybody that wants to investigate on the presented case from the workshop, please reach out to us. We will be happy to share the exported data with you for your investigation.
+> Regarding the Workshop data:
+> The simulated data used to create this workshop is specifically not uploaded to this repository.
+> Everybody that wants to investigate on the presented case from the workshop, please reach out to us. 
+> We will be happy to share the exported data with you for your investigation.
 > Please contact Alexander.Goedeke@sva.de.
  
 This repository contains the workshop stack directly in
