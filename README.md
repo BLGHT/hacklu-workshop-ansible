@@ -1,5 +1,9 @@
 # MAGIC Workshop Ansible Deployment
 
+> [!IMPORTANT] Regarding the Workshop data
+> The simulated data used to create this workshop is specifically not uploaded to this repository. Everybody that wants to investigate on the presented case from the workshop, please reach out to us. We will be happy to share the exported data with you for your investigation.
+> Please contact Alexander.Goedeke@sva.de.
+ 
 This repository contains the workshop stack directly in
 `roles/magic-workshop/files/workshop/`. Ansible copies those files to the host and performs the complete
 setup, including Docker Compose startup, participant provisioning, and
@@ -16,8 +20,8 @@ each VM, set:
     paths are resolved from this repository's root
 
 The CSV is copied to the VM before provisioning. If its file does not exist,
-Ansible creates it locally with 50 rows (`participant01` through
-`participant50`), ready to edit. Password columns can be left empty to have
+Ansible creates it locally with 20 rows (`participant01` through
+`participant20`), ready to edit. Password columns can be left empty to have
 strong passwords generated. CSV files are git-ignored; the example inventory
 uses `.participants/` for them.
 
